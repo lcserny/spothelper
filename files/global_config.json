@@ -1,0 +1,13 @@
+[
+  {
+    "hybo-test": {
+      "host": "http://localhost:8888",
+      "root": "",
+      "backupRoot": "",
+      "sites": [
+        "rdafr",
+        "rdat"
+      ]
+    }
+  }
+]
