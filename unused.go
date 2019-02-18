@@ -72,7 +72,7 @@ func writeFiles(versionsMap map[string]int, configs map[string]GlobalConfig, inF
 			CheckError(err)
 
 			unusedResources := getUnusedResources(jsonClusterResourcesMap, versionsMap, configs)
-			whiteUnusedResources(unusedResources, filepath.Join(outFolder, fmt.Sprintf("UNUSED_%s", info.Name())))
+			writeLinesToFile(unusedResources, filepath.Join(outFolder, fmt.Sprintf("UNUSED_%s", info.Name())))
 
 			// TODO: add other files to write
 		}
@@ -81,13 +81,20 @@ func writeFiles(versionsMap map[string]int, configs map[string]GlobalConfig, inF
 	CheckError(err)
 }
 
-func whiteUnusedResources(unusedResources []string, fileName string) {
+func writeLinesToFile(slice []string, fileName string) {
+	file, err := os.Create(fileName)
+	defer CloseFile(file)
+	CheckError(err)
 
+	for _, val := range slice {
+		_, err := fmt.Fprintln(file, val)
+		CheckError(err)
+	}
+	log.Printf("Done writing file: %s", fileName)
 }
 
-// TODO
 func getUnusedResources(resources map[string]string, versions map[string]int, configs map[string]GlobalConfig) []string {
-	return make([]string, 0)
+
 }
 
 func getGlobalConfigMap(globalConfigFile string) map[string]GlobalConfig {
