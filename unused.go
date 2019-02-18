@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -148,6 +149,7 @@ func getUnusedResources(resources []string, versions map[string]int, config Glob
 		resultList = append(resultList, fmt.Sprintf("GLOBAL: %s", e.file))
 	}
 
+	sort.Strings(resultList)
 	return resultList
 }
 
