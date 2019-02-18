@@ -137,15 +137,15 @@ func getUnusedResources(resources []string, versions map[string]int, config Glob
 	}
 
 	for _, e := range localeResources {
-		resultList = append(resultList, fmt.Sprintf("LOCALE: %#v", e))
+		resultList = append(resultList, fmt.Sprintf("LOCALE: %s", e.file))
 	}
 
 	for _, e := range siteResources {
-		resultList = append(resultList, fmt.Sprintf("SITE: %#v", e))
+		resultList = append(resultList, fmt.Sprintf("SITE: %s", e.file))
 	}
 
 	for _, e := range globalResources {
-		resultList = append(resultList, fmt.Sprintf("GLOBAL: %#v", e))
+		resultList = append(resultList, fmt.Sprintf("GLOBAL: %s", e.file))
 	}
 
 	return resultList

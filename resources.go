@@ -10,7 +10,7 @@ type GlobalConfig struct {
 }
 
 type Resource struct {
-	files []string
+	file string
 }
 
 type GlobalResource struct {
@@ -53,7 +53,8 @@ func NewGlobalResourceFrom(subgroups map[string]string) *GlobalResource {
 	}
 }
 
-// TODO: use files?
 func NewResourceFrom(subgroups map[string]string) *Resource {
-	return &Resource{}
+	return &Resource{
+		subgroups["file"],
+	}
 }
