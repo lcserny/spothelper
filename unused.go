@@ -176,7 +176,7 @@ func getVersions(spotVersionsFile string) map[string]int {
 
 	versionsMap := make(map[string]int)
 
-	exp, err := regexp.Compile("^\\s*(?P<name>[a-zA-Z]+)\\s+->\\s+[vV](?P<version>[0-9]{1,2})\\s*$")
+	exp, err := regexp.Compile("^\\s*(?P<name>[a-zA-Z_-]+)\\s+->\\s+[vV](?P<version>[0-9]{1,2})\\s*$")
 	CheckError(err)
 	scanner := bufio.NewScanner(openedFile)
 	for scanner.Scan() {
