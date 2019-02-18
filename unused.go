@@ -40,7 +40,7 @@ func ProcessUnused(spotVersionsFile string, globalConfigFile string, inFolder st
 }
 
 func getOutFolder(outFolder string) string {
-	today := time.Now().Format("YYYY-MM-DD")
+	today := time.Now().Format("2006-01-02")
 	count := 0
 	newOutFolder := filepath.Join(outFolder, fmt.Sprintf("%s_%d", today, count))
 	for {
