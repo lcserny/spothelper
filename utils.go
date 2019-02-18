@@ -2,6 +2,7 @@ package spothelper
 
 import (
 	"log"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -29,4 +30,15 @@ func CheckError(e error) {
 	if e != nil {
 		log.Fatalf("ERROR: %s", e)
 	}
+}
+
+func GetRegexSubgroups(exp *regexp.Regexp, text string) map[string]string {
+	match := exp.FindStringSubmatch(text)
+	resultMap := make(map[string]string)
+	for i, name := range exp.SubexpNames() {
+		if i != 0 && name != "" {
+			resultMap[name] = match[i]
+		}
+	}
+	return resultMap
 }
