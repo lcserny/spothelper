@@ -126,13 +126,13 @@ func getUnusedResources(resources []string, versions map[string]int, config Glob
 	for _, resource := range resources {
 		if localePattern.MatchString(resource) {
 			subgroups := GetRegexSubgroups(localePattern, resource)
-			localeResources = append(localeResources, *NewLocaleResourceFrom(subgroups))
+			localeResources = append(localeResources, *NewLocaleResourceFrom(resource, subgroups))
 		} else if sitePattern.MatchString(resource) {
 			subgroups := GetRegexSubgroups(sitePattern, resource)
-			siteResources = append(siteResources, *NewSiteResourceFrom(subgroups))
+			siteResources = append(siteResources, *NewSiteResourceFrom(resource, subgroups))
 		} else if globalPattern.MatchString(resource) {
 			subgroups := GetRegexSubgroups(globalPattern, resource)
-			globalResources = append(globalResources, *NewGlobalResourceFrom(subgroups))
+			globalResources = append(globalResources, *NewGlobalResourceFrom(resource, subgroups))
 		}
 	}
 

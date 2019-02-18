@@ -29,32 +29,32 @@ type LocaleResource struct {
 	locale string
 }
 
-func NewLocaleResourceFrom(subgroups map[string]string) *LocaleResource {
+func NewLocaleResourceFrom(resource string, subgroups map[string]string) *LocaleResource {
 	return &LocaleResource{
-		NewSiteResourceFrom(subgroups),
+		NewSiteResourceFrom(resource, subgroups),
 		subgroups["locale"],
 	}
 }
 
-func NewSiteResourceFrom(subgroups map[string]string) *SiteResource {
+func NewSiteResourceFrom(resource string, subgroups map[string]string) *SiteResource {
 	return &SiteResource{
-		NewGlobalResourceFrom(subgroups),
+		NewGlobalResourceFrom(resource, subgroups),
 		subgroups["site"],
 	}
 }
 
-func NewGlobalResourceFrom(subgroups map[string]string) *GlobalResource {
+func NewGlobalResourceFrom(resource string, subgroups map[string]string) *GlobalResource {
 	version, err := strconv.ParseInt(subgroups["version"], 0, 32)
 	CheckError(err)
 	return &GlobalResource{
-		NewResourceFrom(subgroups),
+		NewResourceFrom(resource),
 		subgroups["name"],
 		int(version),
 	}
 }
 
-func NewResourceFrom(subgroups map[string]string) *Resource {
+func NewResourceFrom(resource string) *Resource {
 	return &Resource{
-		subgroups["file"],
+		resource,
 	}
 }
