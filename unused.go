@@ -64,7 +64,7 @@ func getOutFolder(outFolder string) string {
 	}
 }
 
-func writeFiles(versionsMap *map[string]int, configs *map[string]GlobalConfig, inFolder string, outFolder string) {
+func writeFiles(versionsMap map[string]int, configs map[string]GlobalConfig, inFolder string, outFolder string) {
 	err := filepath.Walk(inFolder, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
 			allBytes, err := ioutil.ReadFile(path)
@@ -76,10 +76,7 @@ func writeFiles(versionsMap *map[string]int, configs *map[string]GlobalConfig, i
 
 			spotInstance := getSpotInstanceName(info.Name())
 
-			// TODO: don't extract like this? maybe slices and maps are always pointers?
-			globalConfigs := *configs
-
-			unusedResources := getUnusedResources(clusterResourcesList, versionsMap, globalConfigs[spotInstance])
+			unusedResources := getUnusedResources(clusterResourcesList, versionsMap, configs[spotInstance])
 			writeLinesToFile(unusedResources, filepath.Join(outFolder, UNUSED_PREF, spotInstance))
 
 			// TODO: add other files to write
@@ -89,12 +86,12 @@ func writeFiles(versionsMap *map[string]int, configs *map[string]GlobalConfig, i
 	CheckError(err)
 }
 
-func getClusterResourcesList(clusterResourcesMap map[string]string) *[]string {
+func getClusterResourcesList(clusterResourcesMap map[string]string) []string {
 	list := make([]string, len(clusterResourcesMap))
 	for k := range clusterResourcesMap {
 		list = append(list, k)
 	}
-	return &list
+	return list
 }
 
 func getSpotInstanceName(fileName string) string {
@@ -103,26 +100,26 @@ func getSpotInstanceName(fileName string) string {
 	return fileName[startIndex:endIndex]
 }
 
-func writeLinesToFile(slice *[]string, fullFilePath string) {
+func writeLinesToFile(slice []string, fullFilePath string) {
 	file, err := os.Create(fullFilePath)
 	defer CloseFile(file)
 	CheckError(err)
 
-	for _, val := range *slice {
+	for _, val := range slice {
 		_, err := fmt.Fprintln(file, val)
 		CheckError(err)
 	}
 	log.Printf("Done writing file: %s", fullFilePath)
 }
 
-func getUnusedResources(resources *[]string, versions *map[string]int, config GlobalConfig) *[]string {
+func getUnusedResources(resources []string, versions map[string]int, config GlobalConfig) []string {
 	var globalResources []GlobalResource
 	var siteResources []SiteResource
 	var localeResources []LocaleResource
 
 	var resultList []string
 
-	for _, resource := range *resources {
+	for _, resource := range resources {
 		if localePattern.MatchString(resource) {
 			subgroups := GetRegexSubgroups(localePattern, resource)
 			localeResources = append(localeResources, *NewLocaleResourceFrom(subgroups))
@@ -147,10 +144,10 @@ func getUnusedResources(resources *[]string, versions *map[string]int, config Gl
 		resultList = append(resultList, fmt.Sprintf("GLOBAL: %#v", e))
 	}
 
-	return &resultList
+	return resultList
 }
 
-func getGlobalConfigMap(globalConfigFile string) *map[string]GlobalConfig {
+func getGlobalConfigMap(globalConfigFile string) map[string]GlobalConfig {
 	allBytes, err := ioutil.ReadFile(globalConfigFile)
 	CheckError(err)
 
@@ -165,10 +162,10 @@ func getGlobalConfigMap(globalConfigFile string) *map[string]GlobalConfig {
 		}
 	}
 
-	return &resultMap
+	return resultMap
 }
 
-func getVersions(spotVersionsFile string) *map[string]int {
+func getVersions(spotVersionsFile string) map[string]int {
 	openedFile, err := os.Open(spotVersionsFile)
 	defer CloseFile(openedFile)
 	CheckError(err)
@@ -185,5 +182,5 @@ func getVersions(spotVersionsFile string) *map[string]int {
 		versionsMap[regexSubGroups["name"]] = int(version)
 	}
 
-	return &versionsMap
+	return versionsMap
 }
