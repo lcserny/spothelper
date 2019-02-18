@@ -80,7 +80,7 @@ func writeFiles(versionsMap *map[string]int, configs *map[string]GlobalConfig, i
 			globalConfigs := *configs
 
 			unusedResources := getUnusedResources(clusterResourcesList, versionsMap, globalConfigs[spotInstance])
-			writeLinesToFile(unusedResources, filepath.Join(outFolder, fmt.Sprintf("UNUSED_%s", info.Name())))
+			writeLinesToFile(unusedResources, filepath.Join(outFolder, UNUSED_PREF, spotInstance))
 
 			// TODO: add other files to write
 		}
