@@ -2,9 +2,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	. "github.com/lcserny/spothelper"
-	"github.com/lcserny/stringutil"
+	//"github.com/lcserny/stringutil"
 	"log"
 	"os"
 	"strconv"
@@ -40,6 +39,6 @@ func main() {
 }
 
 func oldMain() {
-	fmt.Printf(stringutil.Reverse("\n!oG ,olleH"))
+	//fmt.Printf(stringutil.Reverse("\n!oG ,olleH"))
 	ReadFile("files/tmpFile")
 }
