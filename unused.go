@@ -3,11 +3,21 @@ package spothelper
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
+	"time"
+)
+
+const (
+	UNUSED_PREF        = "UNUSED"
+	MISC_PREF          = "MISC_UNUSED"
+	DEL_COMMANDS_PREF  = "DELETE_CMD"
+	BACK_COMMANDS_PREF = "BACKUP_CMD"
 )
 
 type GlobalConfig struct {
@@ -17,45 +27,67 @@ type GlobalConfig struct {
 	Sites      []string `json:"sites"`
 }
 
-func ProcessUnused(spotVersionsFile string, globalConfigFile string, secondsBetween int, clusterResourcesFile string) {
-	log.Println(spotVersionsFile)
+func ProcessUnused(spotVersionsFile string, globalConfigFile string, inFolder string, outFolder string) {
+	log.Println("spotVersionsFile:", spotVersionsFile)
+	log.Println("globalConfigFile:", globalConfigFile)
+	log.Println("inFolder:", inFolder)
+	log.Println("outFolder:", outFolder)
+
 	spotVersionsMap := getVersions(spotVersionsFile)
-	for k, v := range spotVersionsMap {
-		log.Printf("key=%s val=%d\n", k, v)
-	}
-
-	log.Println(globalConfigFile)
 	globalConfigMap := getGlobalConfigMap(globalConfigFile)
-	for k, v := range globalConfigMap {
-		log.Printf("key=%s val=%#v\n", k, v)
-	}
+	outFolderPath := getOutFolder(outFolder)
+	writeFiles(spotVersionsMap, globalConfigMap, inFolder, outFolderPath)
+}
 
-	log.Println(secondsBetween)
-
-	log.Println(clusterResourcesFile)
-	unusedResources := getUnusedResources(clusterResourcesFile, spotVersionsMap, globalConfigMap, secondsBetween)
-	for i, ele := range unusedResources {
-		log.Printf("unusedResource#%d: %s", i, ele)
+func getOutFolder(outFolder string) string {
+	today := time.Now().Format("YYYY-MM-DD")
+	count := 0
+	newOutFolder := filepath.Join(outFolder, fmt.Sprintf("%s_%d", today, count))
+	for {
+		if _, err := os.Stat(newOutFolder); os.IsNotExist(err) {
+			err := os.MkdirAll(filepath.Join(newOutFolder, UNUSED_PREF), os.ModePerm)
+			CheckError(err)
+			err = os.MkdirAll(filepath.Join(newOutFolder, MISC_PREF), os.ModePerm)
+			CheckError(err)
+			err = os.MkdirAll(filepath.Join(newOutFolder, DEL_COMMANDS_PREF), os.ModePerm)
+			CheckError(err)
+			err = os.MkdirAll(filepath.Join(newOutFolder, BACK_COMMANDS_PREF), os.ModePerm)
+			CheckError(err)
+			log.Printf("Created output folders in: %s", newOutFolder)
+			return newOutFolder
+		} else {
+			count++
+			newOutFolder = filepath.Join(outFolder, fmt.Sprintf("%s_%d", today, count))
+		}
 	}
 }
 
-func getUnusedResources(clusterResourcesFile string, versionsMap map[string]int,
-	configs map[string]GlobalConfig, secondsBetween int) []string {
-	allBytes, err := ioutil.ReadFile(clusterResourcesFile)
+func writeFiles(versionsMap map[string]int, configs map[string]GlobalConfig, inFolder string, outFolder string) {
+	err := filepath.Walk(inFolder, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			allBytes, err := ioutil.ReadFile(path)
+			CheckError(err)
+			var jsonClusterResourcesMap map[string]string
+			err = json.Unmarshal(allBytes, &jsonClusterResourcesMap)
+			CheckError(err)
+
+			unusedResources := getUnusedResources(jsonClusterResourcesMap, versionsMap, configs)
+			whiteUnusedResources(unusedResources, filepath.Join(outFolder, fmt.Sprintf("UNUSED_%s", info.Name())))
+
+			// TODO: add other files to write
+		}
+		return nil
+	})
 	CheckError(err)
+}
 
-	var unusedResources []string
+func whiteUnusedResources(unusedResources []string, fileName string) {
 
-	var jsonClusterResourcesMap map[string]string
-	err = json.Unmarshal(allBytes, &jsonClusterResourcesMap)
-	CheckError(err)
-	for k := range jsonClusterResourcesMap {
-		unusedResources = append(unusedResources, k)
-	}
+}
 
-	// TODO: leave ONLY unusedResources
-
-	return unusedResources
+// TODO
+func getUnusedResources(resources map[string]string, versions map[string]int, configs map[string]GlobalConfig) []string {
+	return make([]string, 0)
 }
 
 func getGlobalConfigMap(globalConfigFile string) map[string]GlobalConfig {
