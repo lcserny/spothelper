@@ -6,7 +6,6 @@ import (
 	//"github.com/lcserny/stringutil"
 	"log"
 	"os"
-	"strconv"
 )
 
 var commandFlag *string
@@ -24,11 +23,9 @@ func main() {
 	switch command {
 	case UNUSED:
 		if len(args) < 4 {
-			log.Fatal("Please provide args: spotVersionsFile, globalConfigFile, secondsBetween and clusterResourcesFile")
+			log.Fatal("Please provide args: spotVersionsFile, globalConfigFile, inFolder and outFolder")
 		}
-		seconds, err := strconv.ParseInt(args[2], 0, 32)
-		CheckError(err)
-		ProcessUnused(args[0], args[1], int(seconds), args[3])
+		ProcessUnused(args[0], args[1], args[2], args[3])
 		break
 	case UNKNOWN:
 		log.Fatal("Unknown command given")
