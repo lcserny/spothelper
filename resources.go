@@ -53,6 +53,7 @@ func NewGlobalResourceFrom(subgroups map[string]string) *GlobalResource {
 	}
 }
 
+// TODO: use files?
 func NewResourceFrom(subgroups map[string]string) *Resource {
 	return &Resource{}
 }

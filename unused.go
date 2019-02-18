@@ -44,7 +44,7 @@ func ProcessUnused(spotVersionsFile string, globalConfigFile string, inFolder st
 func getOutFolder(outFolder string) string {
 	today := time.Now().Format("2006-01-02")
 	count := 0
-	newOutFolder := filepath.Join(outFolder, fmt.Sprintf("%s_%d", today, count))
+	newOutFolder := generateNewOutFolderPath(outFolder, today, count)
 	for {
 		if _, err := os.Stat(newOutFolder); os.IsNotExist(err) {
 			err := os.MkdirAll(filepath.Join(newOutFolder, UNUSED_PREF), os.ModePerm)
@@ -59,9 +59,13 @@ func getOutFolder(outFolder string) string {
 			return newOutFolder
 		} else {
 			count++
-			newOutFolder = filepath.Join(outFolder, fmt.Sprintf("%s_%d", today, count))
+			newOutFolder = generateNewOutFolderPath(outFolder, today, count)
 		}
 	}
+}
+
+func generateNewOutFolderPath(outFolder string, date string, count int) string {
+	return filepath.Join(outFolder, fmt.Sprintf("%s_%d", date, count))
 }
 
 func writeFiles(versionsMap map[string]int, configs map[string]GlobalConfig, inFolder string, outFolder string) {
