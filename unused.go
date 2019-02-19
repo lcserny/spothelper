@@ -74,6 +74,7 @@ func generateNewOutFolderPath(outFolder string, date string, count int) string {
 
 func writeFiles(versionsMap map[string]int, configs map[string]GlobalConfig, inFolder string, outFolder string) {
 	err := filepath.Walk(inFolder, func(path string, info os.FileInfo, err error) error {
+		CheckError(err)
 		if !info.IsDir() {
 			allBytes, err := ioutil.ReadFile(path)
 			CheckError(err)
