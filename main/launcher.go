@@ -21,33 +21,37 @@ func main() {
 	startTime := MakeTimestamp()
 
 	args := os.Args[1:]
+	argsLength := len(args)
 	command := MewCommandFrom(*commandFlag)
 	switch command {
 	case UNUSED:
-		if len(args) < 4 {
+		incr := 0
+		if argsLength < 4 {
 			log.Fatal("Please provide args: spotVersionsFile, globalConfigFile, inFolder and outFolder")
+		} else if argsLength > 4 {
+			incr = 1
 		}
-		ProcessUnused(args[0], args[1], args[2], args[3])
+		ProcessUnused(args[0+incr], args[1+incr], args[2+incr], args[3+incr])
 		break
 	case BACKUP:
-		if len(args) < 4 {
+		if argsLength < 4 {
 			log.Fatal("Please provide args: backupCommandsFile, secondsBetween, startOffset and limit")
 		}
-		secondsBetween, err := strconv.ParseInt(args[1], 0, 32)
+		secondsBetween, err := strconv.ParseInt(args[2], 0, 32)
 		CheckError(err)
-		startOffset, err := strconv.ParseInt(args[2], 0, 32)
+		startOffset, err := strconv.ParseInt(args[3], 0, 32)
 		CheckError(err)
-		limit, err := strconv.ParseInt(args[3], 0, 32)
+		limit, err := strconv.ParseInt(args[4], 0, 32)
 		CheckError(err)
-		RunBackupCommands(args[0], int(secondsBetween), int(startOffset), int(limit))
+		RunBackupCommands(args[1], int(secondsBetween), int(startOffset), int(limit))
 		break
 	case DELETE:
-		if len(args) < 4 {
+		if argsLength < 4 {
 			log.Fatal("Please provide args: deleteCommandsFile, secondsBetween, startResource and limitResource")
 		}
-		secondsBetween, err := strconv.ParseInt(args[1], 0, 32)
+		secondsBetween, err := strconv.ParseInt(args[2], 0, 32)
 		CheckError(err)
-		RunDeleteCommands(args[0], int(secondsBetween), args[2], args[3])
+		RunDeleteCommands(args[1], int(secondsBetween), args[3], args[4])
 		break
 	case UNKNOWN:
 		log.Fatal("Unknown command given")
