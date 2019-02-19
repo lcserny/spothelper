@@ -164,10 +164,9 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 		resultList = populateUnusedResources(resultList, versions, &e)
 	}
 
-	deleteCommands, backupCommands := produceCommands(resultList, unmatchedResults, &config)
-
 	sort.Strings(resultList)
 	sort.Strings(unmatchedResults)
+	deleteCommands, backupCommands := produceCommands(resultList, unmatchedResults, &config)
 
 	return resultList, unmatchedResults, deleteCommands, backupCommands
 }
