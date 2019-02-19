@@ -42,3 +42,12 @@ func GetRegexSubgroups(exp *regexp.Regexp, text string) map[string]string {
 	}
 	return resultMap
 }
+
+func StringsContain(strings []string, match string) bool {
+	for _, ele := range strings {
+		if ele == match {
+			return true
+		}
+	}
+	return false
+}

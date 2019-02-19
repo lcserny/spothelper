@@ -24,11 +24,14 @@ const (
 	GLOBAL_PATTERN = "^(?P<name>.*)/[vV](?P<version>[0-9]{1,2})/(?P<file>[^/]+)$"
 	SITE_PATTERN   = "^(?P<site>.*)/(?P<name>.*)/[vV](?P<version>[0-9]{1,2})/(?P<file>[^/]+)$"
 	LOCALE_PATTERN = "^(?P<site>.*)/(?P<locale>.*)/(?P<name>.*)/[vV](?P<version>[0-9]{1,2})/(?P<file>[^/]+)$"
+
+	NAME_EXC = "orderedcount-[a-zA-Z]+"
 )
 
 var globalPattern = regexp.MustCompile(GLOBAL_PATTERN)
 var sitePattern = regexp.MustCompile(SITE_PATTERN)
 var localePattern = regexp.MustCompile(LOCALE_PATTERN)
+var nameExcPattern = regexp.MustCompile(NAME_EXC)
 
 func ProcessUnused(spotVersionsFile string, globalConfigFile string, inFolder string, outFolder string) {
 	log.Println("spotVersionsFile:", spotVersionsFile)
@@ -81,10 +84,11 @@ func writeFiles(versionsMap map[string]int, configs map[string]GlobalConfig, inF
 
 			spotInstance := getSpotInstanceName(info.Name())
 
-			unusedResources := getUnusedResources(clusterResourcesList, versionsMap, configs[spotInstance])
+			unusedResources, unmatchedResources, deleteCommands, backupCommands := process(clusterResourcesList, versionsMap, configs[spotInstance])
 			writeLinesToFile(unusedResources, filepath.Join(outFolder, UNUSED_PREF, spotInstance))
-
-			// TODO: add other files to write
+			writeLinesToFile(unmatchedResources, filepath.Join(outFolder, MISC_PREF, spotInstance))
+			writeLinesToFile(deleteCommands, filepath.Join(outFolder, DEL_COMMANDS_PREF, spotInstance))
+			writeLinesToFile(backupCommands, filepath.Join(outFolder, BACK_COMMANDS_PREF, spotInstance))
 		}
 		return nil
 	})
@@ -117,12 +121,13 @@ func writeLinesToFile(slice []string, fullFilePath string) {
 	log.Printf("Done writing file: %s", fullFilePath)
 }
 
-func getUnusedResources(resources []string, versions map[string]int, config GlobalConfig) []string {
+func process(resources []string, versions map[string]int, config GlobalConfig) ([]string, []string, []string, []string) {
 	var globalResources []GlobalResource
 	var siteResources []SiteResource
 	var localeResources []LocaleResource
 
 	var resultList []string
+	var unmatchedResults []string
 
 	for _, resource := range resources {
 		if localePattern.MatchString(resource) {
@@ -134,23 +139,104 @@ func getUnusedResources(resources []string, versions map[string]int, config Glob
 		} else if globalPattern.MatchString(resource) {
 			subgroups := GetRegexSubgroups(globalPattern, resource)
 			globalResources = append(globalResources, *NewGlobalResourceFrom(resource, subgroups))
+		} else {
+			unmatchedResults = append(unmatchedResults, fmt.Sprintf("UNMATCHED: %s", resource))
 		}
 	}
 
 	for _, e := range localeResources {
-		resultList = append(resultList, fmt.Sprintf("LOCALE: %s", e.file))
+		result, resultList := checkShopPopulateAndDiscard(resultList, &config, e.SiteResource)
+		if result {
+			resultList = populateUnusedResources(resultList, versions, e.GlobalResource)
+		}
 	}
 
 	for _, e := range siteResources {
-		resultList = append(resultList, fmt.Sprintf("SITE: %s", e.file))
+		result, resultList := checkShopPopulateAndDiscard(resultList, &config, &e)
+		if result {
+			resultList = populateUnusedResources(resultList, versions, e.GlobalResource)
+		}
 	}
 
 	for _, e := range globalResources {
-		resultList = append(resultList, fmt.Sprintf("GLOBAL: %s", e.file))
+		resultList = populateUnusedResources(resultList, versions, &e)
 	}
 
+	deleteCommands := produceDeleteCommands(resultList, unmatchedResults, &config)
+	backupCommands := produceBackupCommands(resultList, unmatchedResults, &config)
+
 	sort.Strings(resultList)
+	sort.Strings(unmatchedResults)
+	sort.Strings(deleteCommands)
+	sort.Strings(backupCommands)
+
+	return resultList, unmatchedResults, deleteCommands, backupCommands
+}
+
+func produceBackupCommands(resultList []string, unmatchedResults []string, config *GlobalConfig) []string {
+	var commands []string
+	for _, ele := range resultList {
+		commands = addBackupCommand(commands, ele, config)
+	}
+	for _, ele := range unmatchedResults {
+		commands = addBackupCommand(commands, ele, config)
+	}
+	return commands
+}
+
+func produceDeleteCommands(resultList []string, unmatchedResults []string, config *GlobalConfig) []string {
+	var commands []string
+	for _, ele := range resultList {
+		commands = addDeleteCommand(commands, ele, config)
+	}
+	for _, ele := range unmatchedResults {
+		commands = addDeleteCommand(commands, ele, config)
+	}
+	return commands
+}
+
+func addBackupCommand(commands []string, element string, config *GlobalConfig) []string {
+	parent := filepath.Dir(element)
+	commands = append(commands, fmt.Sprintf("mkdir -p %s/%s", config.BackupRoot, parent))
+	return append(commands, fmt.Sprintf("cp -f %s/%s* %s/%s", config.Root, element, config.BackupRoot, parent))
+}
+
+func addDeleteCommand(commands []string, element string, config *GlobalConfig) []string {
+	return append(commands, fmt.Sprintf("curl -X \"DELETE\" %s/spot/resource/%s", config.Host, element))
+}
+
+func checkShopPopulateAndDiscard(resultList []string, config *GlobalConfig, resource *SiteResource) (bool, []string) {
+	if !StringsContain(config.Sites, resource.site) {
+		resultList = append(resultList, resource.file)
+		return false, resultList
+	}
+	return true, resultList
+}
+
+func populateUnusedResources(resultList []string, versions map[string]int, resource *GlobalResource) []string {
+	noConsumerMatched := true
+	for rName, rVer := range versions {
+		if rName == resource.name {
+			noConsumerMatched = false
+			if resource.version < rVer {
+				resultList = append(resultList, resource.file)
+			}
+		}
+	}
+
+	if noConsumerMatched && noNameExceptionApplies(resource.name) {
+		resultList = append(resultList, resource.file)
+	}
+
 	return resultList
+}
+
+func noNameExceptionApplies(resourceName string) bool {
+	if nameExcPattern.MatchString(resourceName) {
+		return false
+	}
+	// TODO: add more exceptions?
+	return true
 }
 
 func getGlobalConfigMap(globalConfigFile string) map[string]GlobalConfig {
