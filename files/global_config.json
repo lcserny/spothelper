@@ -2,8 +2,8 @@
   {
     "hybo-test": {
       "host": "http://localhost:8888",
-      "root": "",
-      "backupRoot": "",
+      "root": "/home/leonardo/workspace/projects/java/spring_shop/hybo-cms/spot/resources",
+      "backupRoot": "/home/leonardo/spot/resources",
       "sites": [
         "rdafr",
         "rdat"
