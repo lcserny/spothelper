@@ -1,7 +1,9 @@
 package spothelper
 
 import (
+	"bufio"
 	"log"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -12,6 +14,8 @@ type Command int
 const (
 	UNKNOWN Command = -1
 	UNUSED  Command = 0
+	BACKUP  Command = 1
+	DELETE  Command = 2
 )
 
 func MakeTimestamp() int64 {
@@ -22,6 +26,10 @@ func MewCommandFrom(val string) Command {
 	switch strings.ToUpper(val) {
 	case "UNUSED":
 		return UNUSED
+	case "BACKUP":
+		return BACKUP
+	case "DELETE":
+		return DELETE
 	}
 	return UNKNOWN
 }
@@ -50,4 +58,24 @@ func StringsContain(strings []string, match string) bool {
 		}
 	}
 	return false
+}
+
+func MinInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func ReadFileToLines(file string) []string {
+	openFile, err := os.Open(file)
+	defer CloseFile(openFile)
+	CheckError(err)
+
+	var lines []string
+	scanner := bufio.NewScanner(openFile)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines
 }
