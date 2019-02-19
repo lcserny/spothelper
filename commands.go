@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -41,9 +40,9 @@ func RunDeleteCommands(deleteCommandsFile string, secondsBetween int, startResou
 func runProcess(secondsBetween int, index int, command string) {
 	log.Printf("Running command #%d: \"%s\"", index, command)
 
-	bin, err := exec.LookPath("bash")
-	CheckError(err)
-	err = syscall.Exec(bin, []string{"bash", "-c", command}, os.Environ())
+	cmd := exec.Command("bash", "-c", command)
+	cmd.Stdout = os.Stdout
+	err := cmd.Run()
 	CheckError(err)
 
 	time.Sleep(time.Duration(secondsBetween) * time.Second)
