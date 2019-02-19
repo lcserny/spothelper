@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/deckarep/golang-set"
 	"io/ioutil"
 	"log"
 	"os"
@@ -88,8 +87,8 @@ func writeFiles(versionsMap map[string]int, configs map[string]GlobalConfig, inF
 			unusedResources, unmatchedResources, deleteCommands, backupCommands := process(clusterResourcesList, versionsMap, configs[spotInstance])
 			writeLinesToFile(unusedResources, filepath.Join(outFolder, UNUSED_PREF, spotInstance))
 			writeLinesToFile(unmatchedResources, filepath.Join(outFolder, MISC_PREF, spotInstance))
-			writeSetToFile(deleteCommands, filepath.Join(outFolder, DEL_COMMANDS_PREF, spotInstance))
-			writeSetToFile(backupCommands, filepath.Join(outFolder, BACK_COMMANDS_PREF, spotInstance))
+			writeLinesToFile(deleteCommands, filepath.Join(outFolder, DEL_COMMANDS_PREF, spotInstance))
+			writeLinesToFile(backupCommands, filepath.Join(outFolder, BACK_COMMANDS_PREF, spotInstance))
 		}
 		return nil
 	})
@@ -122,21 +121,7 @@ func writeLinesToFile(slice []string, fullFilePath string) {
 	log.Printf("Done writing file: %s", fullFilePath)
 }
 
-// FIXME: duplicate function, need more info on casting
-func writeSetToFile(set mapset.Set, fullFilePath string) {
-	file, err := os.Create(fullFilePath)
-	defer CloseFile(file)
-	CheckError(err)
-
-	set.Each(func(i interface{}) bool {
-		_, err := fmt.Fprintln(file, i)
-		CheckError(err)
-		return false
-	})
-	log.Printf("Done writing file: %s", fullFilePath)
-}
-
-func process(resources []string, versions map[string]int, config GlobalConfig) ([]string, []string, mapset.Set, mapset.Set) {
+func process(resources []string, versions map[string]int, config GlobalConfig) ([]string, []string, []string, []string) {
 	var globalResources []GlobalResource
 	var siteResources []SiteResource
 	var localeResources []LocaleResource
@@ -179,9 +164,7 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 		resultList = populateUnusedResources(resultList, versions, &e)
 	}
 
-	// TODO: sort these sets properly
-	deleteCommands := produceDeleteCommands(resultList, unmatchedResults, &config)
-	backupCommands := produceBackupCommands(resultList, unmatchedResults, &config)
+	deleteCommands, backupCommands := produceCommands(resultList, unmatchedResults, &config)
 
 	sort.Strings(resultList)
 	sort.Strings(unmatchedResults)
@@ -189,37 +172,46 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 	return resultList, unmatchedResults, deleteCommands, backupCommands
 }
 
-func produceBackupCommands(resultList []string, unmatchedResults []string, config *GlobalConfig) mapset.Set {
-	commands := mapset.NewSet()
+func produceCommands(resultList []string, unmatchedResults []string, config *GlobalConfig) ([]string, []string) {
+	deleteCommands := make(map[string]bool)
+	backupCommands := make(map[string]bool)
 	for _, ele := range resultList {
-		commands = addBackupCommand(commands, ele, config)
+		deleteCommands = addDeleteCommand(deleteCommands, ele, config)
+		backupCommands = addBackupCommand(backupCommands, ele, config)
 	}
 	for _, ele := range unmatchedResults {
-		commands = addBackupCommand(commands, ele, config)
+		deleteCommands = addDeleteCommand(deleteCommands, ele, config)
+		backupCommands = addBackupCommand(backupCommands, ele, config)
 	}
-	return commands
+
+	var deleteSlice []string
+	for command := range deleteCommands {
+		deleteSlice = append(deleteSlice, command)
+	}
+	var backupSlice []string
+	for command := range backupCommands {
+		backupSlice = append(backupSlice, command)
+	}
+
+	return deleteSlice, backupSlice
 }
 
-func produceDeleteCommands(resultList []string, unmatchedResults []string, config *GlobalConfig) mapset.Set {
-	commands := mapset.NewSet()
-	for _, ele := range resultList {
-		commands = addDeleteCommand(commands, ele, config)
-	}
-	for _, ele := range unmatchedResults {
-		commands = addDeleteCommand(commands, ele, config)
-	}
-	return commands
-}
-
-func addBackupCommand(commands mapset.Set, element string, config *GlobalConfig) mapset.Set {
+func addBackupCommand(commands map[string]bool, element string, config *GlobalConfig) map[string]bool {
 	parent := filepath.Dir(element)
-	commands.Add(fmt.Sprintf("mkdir -p %s/%s", config.BackupRoot, parent))
-	commands.Add(fmt.Sprintf("cp -f %s/%s* %s/%s", config.Root, element, config.BackupRoot, parent))
+	commands = addUniqueCommand(commands, fmt.Sprintf("mkdir -p %s/%s", config.BackupRoot, parent))
+	commands = addUniqueCommand(commands, fmt.Sprintf("cp -f %s/%s* %s/%s", config.Root, element, config.BackupRoot, parent))
 	return commands
 }
 
-func addDeleteCommand(commands mapset.Set, element string, config *GlobalConfig) mapset.Set {
-	commands.Add(fmt.Sprintf("curl -X \"DELETE\" %s/spot/resource/%s", config.Host, element))
+func addDeleteCommand(commands map[string]bool, element string, config *GlobalConfig) map[string]bool {
+	commands = addUniqueCommand(commands, fmt.Sprintf("curl -X \"DELETE\" %s/spot/resource/%s", config.Host, element))
+	return commands
+}
+
+func addUniqueCommand(commands map[string]bool, command string) map[string]bool {
+	if !commands[command] {
+		commands[command] = true
+	}
 	return commands
 }
 
