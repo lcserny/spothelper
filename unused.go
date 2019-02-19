@@ -33,6 +33,9 @@ var sitePattern = regexp.MustCompile(SITE_PATTERN)
 var localePattern = regexp.MustCompile(LOCALE_PATTERN)
 var nameExcPattern = regexp.MustCompile(NAME_EXC)
 
+type OutCommand struct {
+}
+
 func ProcessUnused(spotVersionsFile string, globalConfigFile string, inFolder string, outFolder string) {
 	log.Println("spotVersionsFile:", spotVersionsFile)
 	log.Println("globalConfigFile:", globalConfigFile)
@@ -173,8 +176,9 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 }
 
 func produceCommands(resultList []string, unmatchedResults []string, config *GlobalConfig) ([]string, []string) {
-	deleteCommands := make(map[string]bool)
-	backupCommands := make(map[string]bool)
+	var deleteCommands []string
+	var backupCommands []string
+
 	for _, ele := range resultList {
 		deleteCommands = addDeleteCommand(deleteCommands, ele, config)
 		backupCommands = addBackupCommand(backupCommands, ele, config)
@@ -184,36 +188,39 @@ func produceCommands(resultList []string, unmatchedResults []string, config *Glo
 		backupCommands = addBackupCommand(backupCommands, ele, config)
 	}
 
-	var deleteSlice []string
-	for command := range deleteCommands {
-		deleteSlice = append(deleteSlice, command)
-	}
-	var backupSlice []string
-	for command := range backupCommands {
-		backupSlice = append(backupSlice, command)
-	}
-
-	return deleteSlice, backupSlice
+	return deleteCommands, backupCommands
 }
 
-func addBackupCommand(commands map[string]bool, element string, config *GlobalConfig) map[string]bool {
+func addBackupCommand(commands []string, element string, config *GlobalConfig) []string {
 	parent := filepath.Dir(element)
-	commands = addUniqueCommand(commands, fmt.Sprintf("mkdir -p %s/%s", config.BackupRoot, parent))
-	commands = addUniqueCommand(commands, fmt.Sprintf("cp -f %s/%s* %s/%s", config.Root, element, config.BackupRoot, parent))
+
+	mkdir := fmt.Sprintf("mkdir -p %s/%s", config.BackupRoot, parent)
+	if !StringsContain(commands, mkdir) {
+		commands = append(commands, mkdir)
+	}
+
+	cp := fmt.Sprintf("cp -f %s/%s* %s/%s", config.Root, element, config.BackupRoot, parent)
+	if !StringsContain(commands, cp) {
+		commands = append(commands, cp)
+	}
+
 	return commands
 }
 
-func addDeleteCommand(commands map[string]bool, element string, config *GlobalConfig) map[string]bool {
-	commands = addUniqueCommand(commands, fmt.Sprintf("curl -X \"DELETE\" %s/spot/resource/%s", config.Host, element))
+func addDeleteCommand(commands []string, element string, config *GlobalConfig) []string {
+	curl := fmt.Sprintf("curl -X \"DELETE\" %s/spot/resource/%s", config.Host, element)
+	if !StringsContain(commands, curl) {
+		commands = append(commands, curl)
+	}
 	return commands
 }
 
-func addUniqueCommand(commands map[string]bool, command string) map[string]bool {
+/*func addUniqueCommand(commands map[string]bool, command string) map[string]bool {
 	if !commands[command] {
 		commands[command] = true
 	}
 	return commands
-}
+}*/
 
 func checkShopPopulateAndDiscard(resultList []string, config *GlobalConfig, resource *SiteResource) (bool, []string) {
 	if !StringsContain(config.Sites, resource.site) {
