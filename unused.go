@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/deckarep/golang-set"
 	"io/ioutil"
 	"log"
 	"os"
@@ -87,8 +88,8 @@ func writeFiles(versionsMap map[string]int, configs map[string]GlobalConfig, inF
 			unusedResources, unmatchedResources, deleteCommands, backupCommands := process(clusterResourcesList, versionsMap, configs[spotInstance])
 			writeLinesToFile(unusedResources, filepath.Join(outFolder, UNUSED_PREF, spotInstance))
 			writeLinesToFile(unmatchedResources, filepath.Join(outFolder, MISC_PREF, spotInstance))
-			writeLinesToFile(deleteCommands, filepath.Join(outFolder, DEL_COMMANDS_PREF, spotInstance))
-			writeLinesToFile(backupCommands, filepath.Join(outFolder, BACK_COMMANDS_PREF, spotInstance))
+			writeSetToFile(deleteCommands, filepath.Join(outFolder, DEL_COMMANDS_PREF, spotInstance))
+			writeSetToFile(backupCommands, filepath.Join(outFolder, BACK_COMMANDS_PREF, spotInstance))
 		}
 		return nil
 	})
@@ -96,7 +97,7 @@ func writeFiles(versionsMap map[string]int, configs map[string]GlobalConfig, inF
 }
 
 func getClusterResourcesList(clusterResourcesMap map[string]string) []string {
-	list := make([]string, len(clusterResourcesMap))
+	var list []string
 	for k := range clusterResourcesMap {
 		list = append(list, k)
 	}
@@ -121,7 +122,21 @@ func writeLinesToFile(slice []string, fullFilePath string) {
 	log.Printf("Done writing file: %s", fullFilePath)
 }
 
-func process(resources []string, versions map[string]int, config GlobalConfig) ([]string, []string, []string, []string) {
+// FIXME: duplicate function, need more info on casting
+func writeSetToFile(set mapset.Set, fullFilePath string) {
+	file, err := os.Create(fullFilePath)
+	defer CloseFile(file)
+	CheckError(err)
+
+	set.Each(func(i interface{}) bool {
+		_, err := fmt.Fprintln(file, i)
+		CheckError(err)
+		return false
+	})
+	log.Printf("Done writing file: %s", fullFilePath)
+}
+
+func process(resources []string, versions map[string]int, config GlobalConfig) ([]string, []string, mapset.Set, mapset.Set) {
 	var globalResources []GlobalResource
 	var siteResources []SiteResource
 	var localeResources []LocaleResource
@@ -140,19 +155,21 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 			subgroups := GetRegexSubgroups(globalPattern, resource)
 			globalResources = append(globalResources, *NewGlobalResourceFrom(resource, subgroups))
 		} else {
-			unmatchedResults = append(unmatchedResults, fmt.Sprintf("UNMATCHED: %s", resource))
+			unmatchedResults = append(unmatchedResults, resource)
 		}
 	}
 
 	for _, e := range localeResources {
-		result, resultList := checkShopPopulateAndDiscard(resultList, &config, e.SiteResource)
+		var result bool
+		result, resultList = checkShopPopulateAndDiscard(resultList, &config, e.SiteResource)
 		if result {
 			resultList = populateUnusedResources(resultList, versions, e.GlobalResource)
 		}
 	}
 
 	for _, e := range siteResources {
-		result, resultList := checkShopPopulateAndDiscard(resultList, &config, &e)
+		var result bool
+		result, resultList = checkShopPopulateAndDiscard(resultList, &config, &e)
 		if result {
 			resultList = populateUnusedResources(resultList, versions, e.GlobalResource)
 		}
@@ -162,19 +179,18 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 		resultList = populateUnusedResources(resultList, versions, &e)
 	}
 
+	// TODO: sort these sets properly
 	deleteCommands := produceDeleteCommands(resultList, unmatchedResults, &config)
 	backupCommands := produceBackupCommands(resultList, unmatchedResults, &config)
 
 	sort.Strings(resultList)
 	sort.Strings(unmatchedResults)
-	sort.Strings(deleteCommands)
-	sort.Strings(backupCommands)
 
 	return resultList, unmatchedResults, deleteCommands, backupCommands
 }
 
-func produceBackupCommands(resultList []string, unmatchedResults []string, config *GlobalConfig) []string {
-	var commands []string
+func produceBackupCommands(resultList []string, unmatchedResults []string, config *GlobalConfig) mapset.Set {
+	commands := mapset.NewSet()
 	for _, ele := range resultList {
 		commands = addBackupCommand(commands, ele, config)
 	}
@@ -184,8 +200,8 @@ func produceBackupCommands(resultList []string, unmatchedResults []string, confi
 	return commands
 }
 
-func produceDeleteCommands(resultList []string, unmatchedResults []string, config *GlobalConfig) []string {
-	var commands []string
+func produceDeleteCommands(resultList []string, unmatchedResults []string, config *GlobalConfig) mapset.Set {
+	commands := mapset.NewSet()
 	for _, ele := range resultList {
 		commands = addDeleteCommand(commands, ele, config)
 	}
@@ -195,14 +211,16 @@ func produceDeleteCommands(resultList []string, unmatchedResults []string, confi
 	return commands
 }
 
-func addBackupCommand(commands []string, element string, config *GlobalConfig) []string {
+func addBackupCommand(commands mapset.Set, element string, config *GlobalConfig) mapset.Set {
 	parent := filepath.Dir(element)
-	commands = append(commands, fmt.Sprintf("mkdir -p %s/%s", config.BackupRoot, parent))
-	return append(commands, fmt.Sprintf("cp -f %s/%s* %s/%s", config.Root, element, config.BackupRoot, parent))
+	commands.Add(fmt.Sprintf("mkdir -p %s/%s", config.BackupRoot, parent))
+	commands.Add(fmt.Sprintf("cp -f %s/%s* %s/%s", config.Root, element, config.BackupRoot, parent))
+	return commands
 }
 
-func addDeleteCommand(commands []string, element string, config *GlobalConfig) []string {
-	return append(commands, fmt.Sprintf("curl -X \"DELETE\" %s/spot/resource/%s", config.Host, element))
+func addDeleteCommand(commands mapset.Set, element string, config *GlobalConfig) mapset.Set {
+	commands.Add(fmt.Sprintf("curl -X \"DELETE\" %s/spot/resource/%s", config.Host, element))
+	return commands
 }
 
 func checkShopPopulateAndDiscard(resultList []string, config *GlobalConfig, resource *SiteResource) (bool, []string) {
@@ -221,6 +239,7 @@ func populateUnusedResources(resultList []string, versions map[string]int, resou
 			if resource.version < rVer {
 				resultList = append(resultList, resource.file)
 			}
+			break
 		}
 	}
 
