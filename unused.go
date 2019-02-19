@@ -127,8 +127,8 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 	var siteResources []SiteResource
 	var localeResources []LocaleResource
 
-	var resultList []string
-	var unmatchedResults []string
+	var unusedResources []string
+	var unmatchedResources []string
 
 	for _, resource := range resources {
 		if localePattern.MatchString(resource) {
@@ -141,50 +141,44 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 			subgroups := GetRegexSubgroups(globalPattern, resource)
 			globalResources = append(globalResources, *NewGlobalResourceFrom(resource, subgroups))
 		} else {
-			unmatchedResults = append(unmatchedResults, resource)
+			unmatchedResources = append(unmatchedResources, resource)
 		}
 	}
 
 	for _, e := range localeResources {
 		var result bool
-		result, resultList = checkShopPopulateAndDiscard(resultList, &config, e.SiteResource)
+		result, unusedResources = checkShopPopulateAndDiscard(unusedResources, &config, e.SiteResource)
 		if result {
-			resultList = populateUnusedResources(resultList, versions, e.GlobalResource)
+			unusedResources = populateUnusedResources(unusedResources, versions, e.GlobalResource)
 		}
 	}
 
 	for _, e := range siteResources {
 		var result bool
-		result, resultList = checkShopPopulateAndDiscard(resultList, &config, &e)
+		result, unusedResources = checkShopPopulateAndDiscard(unusedResources, &config, &e)
 		if result {
-			resultList = populateUnusedResources(resultList, versions, e.GlobalResource)
+			unusedResources = populateUnusedResources(unusedResources, versions, e.GlobalResource)
 		}
 	}
 
 	for _, e := range globalResources {
-		resultList = populateUnusedResources(resultList, versions, &e)
+		unusedResources = populateUnusedResources(unusedResources, versions, &e)
 	}
 
-	sort.Strings(resultList)
-	sort.Strings(unmatchedResults)
-	deleteCommands, backupCommands := produceCommands(resultList, unmatchedResults, &config)
+	sort.Strings(unusedResources)
+	sort.Strings(unmatchedResources)
+	deleteCommands, backupCommands := produceCommands(append(unusedResources, unmatchedResources...), &config)
 
-	return resultList, unmatchedResults, deleteCommands, backupCommands
+	return unusedResources, unmatchedResources, deleteCommands, backupCommands
 }
 
-func produceCommands(resultList []string, unmatchedResults []string, config *GlobalConfig) ([]string, []string) {
+func produceCommands(concatenatedList []string, config *GlobalConfig) ([]string, []string) {
 	var deleteCommands []string
 	var backupCommands []string
-
-	for _, ele := range resultList {
+	for _, ele := range concatenatedList {
 		deleteCommands = addDeleteCommand(deleteCommands, ele, config)
 		backupCommands = addBackupCommand(backupCommands, ele, config)
 	}
-	for _, ele := range unmatchedResults {
-		deleteCommands = addDeleteCommand(deleteCommands, ele, config)
-		backupCommands = addBackupCommand(backupCommands, ele, config)
-	}
-
 	return deleteCommands, backupCommands
 }
 
