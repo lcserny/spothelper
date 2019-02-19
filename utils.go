@@ -36,7 +36,7 @@ func MewCommandFrom(val string) Command {
 
 func CheckError(e error) {
 	if e != nil {
-		log.Fatalf("ERROR: %s", e)
+		log.Fatalf("ERROR: %#v", e)
 	}
 }
 
