@@ -215,13 +215,6 @@ func addDeleteCommand(commands []string, element string, config *GlobalConfig) [
 	return commands
 }
 
-/*func addUniqueCommand(commands map[string]bool, command string) map[string]bool {
-	if !commands[command] {
-		commands[command] = true
-	}
-	return commands
-}*/
-
 func checkShopPopulateAndDiscard(resultList []string, config *GlobalConfig, resource *SiteResource) (bool, []string) {
 	if !StringsContain(config.Sites, resource.site) {
 		resultList = append(resultList, resource.file)
