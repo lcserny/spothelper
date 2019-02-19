@@ -42,6 +42,7 @@ func runProcess(secondsBetween int, index int, command string) {
 
 	cmd := exec.Command("bash", "-c", command)
 	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	CheckError(err)
 
