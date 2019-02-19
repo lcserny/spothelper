@@ -33,9 +33,6 @@ var sitePattern = regexp.MustCompile(SITE_PATTERN)
 var localePattern = regexp.MustCompile(LOCALE_PATTERN)
 var nameExcPattern = regexp.MustCompile(NAME_EXC)
 
-type OutCommand struct {
-}
-
 func ProcessUnused(spotVersionsFile string, globalConfigFile string, inFolder string, outFolder string) {
 	log.Println("spotVersionsFile:", spotVersionsFile)
 	log.Println("globalConfigFile:", globalConfigFile)
