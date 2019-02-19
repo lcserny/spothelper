@@ -41,6 +41,7 @@ func runProcess(secondsBetween int, index int, command string) {
 	log.Printf("Running command #%d: \"%s\"", index, command)
 
 	cmd := exec.Command("bash", "-c", command)
+	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
