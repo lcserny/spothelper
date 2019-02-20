@@ -113,8 +113,8 @@ func getSpotInstanceName(fileName string) string {
 
 func writeLinesToFile(slice []string, fullFilePath string) {
 	file, err := os.Create(fullFilePath)
-	defer goutils.CloseFile(file)
 	goutils.CheckError(err)
+	defer goutils.CloseFile(file)
 
 	for _, val := range slice {
 		_, err := fmt.Fprintln(file, val)
@@ -261,8 +261,8 @@ func getGlobalConfigMap(globalConfigFile string) map[string]GlobalConfig {
 
 func getVersions(spotVersionsFile string) map[string]int {
 	openedFile, err := os.Open(spotVersionsFile)
-	defer goutils.CloseFile(openedFile)
 	goutils.CheckError(err)
+	defer goutils.CloseFile(openedFile)
 
 	versionsMap := make(map[string]int)
 
