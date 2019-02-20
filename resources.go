@@ -1,6 +1,9 @@
 package spothelper
 
-import "strconv"
+import (
+	"github.com/lcserny/goutils"
+	"strconv"
+)
 
 type GlobalConfig struct {
 	Host       string   `json:"host"`
@@ -45,7 +48,7 @@ func NewSiteResourceFrom(resource string, subgroups map[string]string) *SiteReso
 
 func NewGlobalResourceFrom(resource string, subgroups map[string]string) *GlobalResource {
 	version, err := strconv.ParseInt(subgroups["version"], 0, 32)
-	CheckError(err)
+	goutils.CheckError(err)
 	return &GlobalResource{
 		NewResourceFrom(resource),
 		subgroups["name"],

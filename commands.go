@@ -1,6 +1,7 @@
 package spothelper
 
 import (
+	"github.com/lcserny/goutils"
 	"log"
 	"os"
 	"os/exec"
@@ -9,14 +10,14 @@ import (
 )
 
 func RunBackupCommands(backupCommandsFile string, secondsBetween int, startOffset int, limit int) {
-	lines := ReadFileToLines(backupCommandsFile)
-	for i := startOffset; i < MinInt(len(lines), limit); i++ {
+	lines := goutils.ReadFileToLines(backupCommandsFile)
+	for i := startOffset; i < goutils.MinInt(len(lines), limit); i++ {
 		runProcess(secondsBetween, i, lines[i])
 	}
 }
 
 func RunDeleteCommands(deleteCommandsFile string, secondsBetween int, startResource string, limitResource string) {
-	lines := ReadFileToLines(deleteCommandsFile)
+	lines := goutils.ReadFileToLines(deleteCommandsFile)
 	startIndex := 0
 	limit := len(lines)
 
@@ -44,7 +45,7 @@ func runProcess(secondsBetween int, index int, command string) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
-	CheckError(err)
+	goutils.CheckError(err)
 
 	time.Sleep(time.Duration(secondsBetween) * time.Second)
 }
