@@ -54,7 +54,7 @@ func main() {
 		goutils.CheckError(err)
 		limit, err := strconv.ParseInt(args[4], 0, 32)
 		goutils.CheckError(err)
-		RunBackupCommands(args[1], int(secondsBetween), int(startOffset), int(limit))
+		ExecuteBackup(args[1], int(secondsBetween), int(startOffset), int(limit))
 		break
 	case DELETE:
 		if argsLength < 4 {
@@ -62,7 +62,7 @@ func main() {
 		}
 		secondsBetween, err := strconv.ParseInt(args[2], 0, 32)
 		goutils.CheckError(err)
-		RunDeleteCommands(args[1], int(secondsBetween), args[3], args[4])
+		ExecuteDelete(args[1], int(secondsBetween), args[3], args[4])
 		break
 	case UNKNOWN:
 		log.Fatal("Unknown command given")

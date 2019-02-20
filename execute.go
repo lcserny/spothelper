@@ -9,14 +9,14 @@ import (
 	"time"
 )
 
-func RunBackupCommands(backupCommandsFile string, secondsBetween int, startOffset int, limit int) {
+func ExecuteBackup(backupCommandsFile string, secondsBetween int, startOffset int, limit int) {
 	lines := goutils.ReadFileToLines(backupCommandsFile)
 	for i := startOffset; i < goutils.MinInt(len(lines), limit); i++ {
-		runProcess(secondsBetween, i, lines[i])
+		execute(secondsBetween, i, lines[i])
 	}
 }
 
-func RunDeleteCommands(deleteCommandsFile string, secondsBetween int, startResource string, limitResource string) {
+func ExecuteDelete(deleteCommandsFile string, secondsBetween int, startResource string, limitResource string) {
 	lines := goutils.ReadFileToLines(deleteCommandsFile)
 	startIndex := 0
 	limit := len(lines)
@@ -34,11 +34,11 @@ func RunDeleteCommands(deleteCommandsFile string, secondsBetween int, startResou
 	}
 
 	for i := startIndex; i < limit; i++ {
-		runProcess(secondsBetween, i, lines[i])
+		execute(secondsBetween, i, lines[i])
 	}
 }
 
-func runProcess(secondsBetween int, index int, command string) {
+func execute(secondsBetween int, index int, command string) {
 	log.Printf("Running command #%d: \"%s\"", index, command)
 
 	cmd := exec.Command("bash", "-c", command)
