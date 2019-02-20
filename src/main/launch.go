@@ -1,9 +1,9 @@
 package main
 
 import (
+	. "../../src"
 	"flag"
 	"github.com/lcserny/goutils"
-	. "github.com/lcserny/spothelper"
 	"strconv"
 	"strings"
 
