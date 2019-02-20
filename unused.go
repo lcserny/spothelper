@@ -129,6 +129,7 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 
 	var unusedResources []string
 	var unmatchedResources []string
+	var checkShopResult bool
 
 	for _, resource := range resources {
 		if localePattern.MatchString(resource) {
@@ -146,17 +147,15 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 	}
 
 	for _, e := range localeResources {
-		var result bool
-		result, unusedResources = checkShopPopulateAndDiscard(unusedResources, &config, e.SiteResource)
-		if result {
+		checkShopResult, unusedResources = checkShopPopulateAndDiscard(unusedResources, &config, e.SiteResource)
+		if checkShopResult {
 			unusedResources = populateUnusedResources(unusedResources, versions, e.GlobalResource)
 		}
 	}
 
 	for _, e := range siteResources {
-		var result bool
-		result, unusedResources = checkShopPopulateAndDiscard(unusedResources, &config, &e)
-		if result {
+		checkShopResult, unusedResources = checkShopPopulateAndDiscard(unusedResources, &config, &e)
+		if checkShopResult {
 			unusedResources = populateUnusedResources(unusedResources, versions, e.GlobalResource)
 		}
 	}
