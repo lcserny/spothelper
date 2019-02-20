@@ -34,7 +34,7 @@ var sitePattern = regexp.MustCompile(SITE_PATTERN)
 var localePattern = regexp.MustCompile(LOCALE_PATTERN)
 var nameExcPattern = regexp.MustCompile(NAME_EXC)
 
-func ProcessUnused(spotVersionsFile string, globalConfigFile string, inFolder string, outFolder string) {
+func ProcessUnused(spotVersionsFile, globalConfigFile, inFolder, outFolder string) {
 	log.Println("spotVersionsFile:", spotVersionsFile)
 	log.Println("globalConfigFile:", globalConfigFile)
 	log.Println("inFolder:", inFolder)
@@ -69,11 +69,11 @@ func getOutFolder(outFolder string) string {
 	}
 }
 
-func generateNewOutFolderPath(outFolder string, date string, count int) string {
+func generateNewOutFolderPath(outFolder, date string, count int) string {
 	return filepath.Join(outFolder, fmt.Sprintf("%s_%d", date, count))
 }
 
-func writeFiles(versionsMap map[string]int, configs map[string]GlobalConfig, inFolder string, outFolder string) {
+func writeFiles(versionsMap map[string]int, configs map[string]GlobalConfig, inFolder, outFolder string) {
 	err := filepath.Walk(inFolder, func(path string, info os.FileInfo, err error) error {
 		goutils.CheckError(err)
 		if !info.IsDir() {
