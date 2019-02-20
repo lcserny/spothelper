@@ -266,8 +266,7 @@ func getVersions(spotVersionsFile string) map[string]int {
 
 	versionsMap := make(map[string]int)
 
-	exp, err := regexp.Compile("^\\s*(?P<name>[a-zA-Z_-]+)\\s+->\\s+[vV](?P<version>[0-9]{1,2})\\s*$")
-	goutils.CheckError(err)
+	exp := regexp.MustCompile("^\\s*(?P<name>[a-zA-Z_-]+)\\s+->\\s+[vV](?P<version>[0-9]{1,2})\\s*$")
 	scanner := bufio.NewScanner(openedFile)
 	for scanner.Scan() {
 		regexSubGroups := goutils.GetRegexSubgroups(exp, scanner.Text())
