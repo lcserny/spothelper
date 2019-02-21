@@ -21,10 +21,9 @@ const (
 	DELETE  Command = 2
 )
 
-var commandFlag *string
+var commandFlag = flag.String("command", "unused", "Please provide a command like: UNUSED")
 
 func init() {
-	commandFlag = flag.String("command", "unused", "Please provide a command like: UNUSED")
 	flag.Parse()
 }
 
