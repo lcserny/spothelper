@@ -3,7 +3,7 @@ package main
 import (
 	. "../../src"
 	"flag"
-	"github.com/lcserny/goutils"
+	. "github.com/lcserny/goutils"
 	"strconv"
 	"strings"
 
@@ -29,7 +29,7 @@ func init() {
 }
 
 func main() {
-	startTime := goutils.MakeTimestamp()
+	startTime := MakeTimestamp()
 
 	args := os.Args[1:]
 	argsLength := len(args)
@@ -49,11 +49,11 @@ func main() {
 			log.Fatal("Please provide args: backupCommandsFile, secondsBetween, startOffset and limit")
 		}
 		secondsBetween, err := strconv.ParseInt(args[2], 0, 32)
-		goutils.CheckError(err)
+		LogFatal(err)
 		startOffset, err := strconv.ParseInt(args[3], 0, 32)
-		goutils.CheckError(err)
+		LogFatal(err)
 		limit, err := strconv.ParseInt(args[4], 0, 32)
-		goutils.CheckError(err)
+		LogFatal(err)
 		ExecuteBackup(args[1], int(secondsBetween), int(startOffset), int(limit))
 		break
 	case DELETE:
@@ -61,14 +61,14 @@ func main() {
 			log.Fatal("Please provide args: deleteCommandsFile, secondsBetween, startResource and limitResource")
 		}
 		secondsBetween, err := strconv.ParseInt(args[2], 0, 32)
-		goutils.CheckError(err)
+		LogFatal(err)
 		ExecuteDelete(args[1], int(secondsBetween), args[3], args[4])
 		break
 	case UNKNOWN:
 		log.Fatal("Unknown command given")
 	}
 
-	endTime := goutils.MakeTimestamp() - startTime
+	endTime := MakeTimestamp() - startTime
 	log.Printf("FINISHED: it took %d ms to execute program!", endTime)
 }
 

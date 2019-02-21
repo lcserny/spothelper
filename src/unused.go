@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/lcserny/goutils"
+	. "github.com/lcserny/goutils"
 	"io/ioutil"
 	"log"
 	"os"
@@ -53,13 +53,13 @@ func getOutFolder(outFolder string) string {
 	for {
 		if _, err := os.Stat(newOutFolder); os.IsNotExist(err) {
 			err := os.MkdirAll(filepath.Join(newOutFolder, UNUSED_PREF), os.ModePerm)
-			goutils.CheckError(err)
+			LogFatal(err)
 			err = os.MkdirAll(filepath.Join(newOutFolder, MISC_PREF), os.ModePerm)
-			goutils.CheckError(err)
+			LogFatal(err)
 			err = os.MkdirAll(filepath.Join(newOutFolder, DEL_COMMANDS_PREF), os.ModePerm)
-			goutils.CheckError(err)
+			LogFatal(err)
 			err = os.MkdirAll(filepath.Join(newOutFolder, BACK_COMMANDS_PREF), os.ModePerm)
-			goutils.CheckError(err)
+			LogFatal(err)
 			log.Printf("Created output folders in: %s", newOutFolder)
 			return newOutFolder
 		} else {
@@ -75,13 +75,13 @@ func generateNewOutFolderPath(outFolder, date string, count int) string {
 
 func writeFiles(versionsMap map[string]int, configs map[string]GlobalConfig, inFolder, outFolder string) {
 	err := filepath.Walk(inFolder, func(path string, info os.FileInfo, err error) error {
-		goutils.CheckError(err)
+		LogFatal(err)
 		if !info.IsDir() {
 			allBytes, err := ioutil.ReadFile(path)
-			goutils.CheckError(err)
+			LogFatal(err)
 			var jsonClusterResourcesMap map[string]string
 			err = json.Unmarshal(allBytes, &jsonClusterResourcesMap)
-			goutils.CheckError(err)
+			LogFatal(err)
 			clusterResourcesList := getClusterResourcesList(jsonClusterResourcesMap)
 
 			spotInstance := getSpotInstanceName(info.Name())
@@ -94,7 +94,7 @@ func writeFiles(versionsMap map[string]int, configs map[string]GlobalConfig, inF
 		}
 		return nil
 	})
-	goutils.CheckError(err)
+	LogFatal(err)
 }
 
 func getClusterResourcesList(clusterResourcesMap map[string]string) []string {
@@ -113,12 +113,12 @@ func getSpotInstanceName(fileName string) string {
 
 func writeLinesToFile(slice []string, fullFilePath string) {
 	file, err := os.Create(fullFilePath)
-	goutils.CheckError(err)
-	defer goutils.CloseFile(file)
+	LogFatal(err)
+	defer CloseFile(file)
 
 	for _, val := range slice {
 		_, err := fmt.Fprintln(file, val)
-		goutils.CheckError(err)
+		LogFatal(err)
 	}
 	log.Printf("Done writing file: %s", fullFilePath)
 }
@@ -134,13 +134,13 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 
 	for _, resource := range resources {
 		if localePattern.MatchString(resource) {
-			subgroups := goutils.GetRegexSubgroups(localePattern, resource)
+			subgroups := GetRegexSubgroups(localePattern, resource)
 			localeResources = append(localeResources, *NewLocaleResourceFrom(resource, subgroups))
 		} else if sitePattern.MatchString(resource) {
-			subgroups := goutils.GetRegexSubgroups(sitePattern, resource)
+			subgroups := GetRegexSubgroups(sitePattern, resource)
 			siteResources = append(siteResources, *NewSiteResourceFrom(resource, subgroups))
 		} else if globalPattern.MatchString(resource) {
-			subgroups := goutils.GetRegexSubgroups(globalPattern, resource)
+			subgroups := GetRegexSubgroups(globalPattern, resource)
 			globalResources = append(globalResources, *NewGlobalResourceFrom(resource, subgroups))
 		} else {
 			unmatchedResources = append(unmatchedResources, resource)
@@ -186,12 +186,12 @@ func addBackupCommand(commands []string, element string, config *GlobalConfig) [
 	parent := filepath.Dir(element)
 
 	mkdir := fmt.Sprintf("mkdir -p %s/%s", config.BackupRoot, parent)
-	if !goutils.StringsContain(commands, mkdir) {
+	if !StringsContain(commands, mkdir) {
 		commands = append(commands, mkdir)
 	}
 
 	cp := fmt.Sprintf("cp -f %s/%s* %s/%s", config.Root, element, config.BackupRoot, parent)
-	if !goutils.StringsContain(commands, cp) {
+	if !StringsContain(commands, cp) {
 		commands = append(commands, cp)
 	}
 
@@ -200,14 +200,14 @@ func addBackupCommand(commands []string, element string, config *GlobalConfig) [
 
 func addDeleteCommand(commands []string, element string, config *GlobalConfig) []string {
 	curl := fmt.Sprintf("curl -X \"DELETE\" %s/spot/resource/%s", config.Host, element)
-	if !goutils.StringsContain(commands, curl) {
+	if !StringsContain(commands, curl) {
 		commands = append(commands, curl)
 	}
 	return commands
 }
 
 func checkShopPopulateAndDiscard(resultList []string, config *GlobalConfig, resource *SiteResource) (bool, []string) {
-	if !goutils.StringsContain(config.Sites, resource.site) {
+	if !StringsContain(config.Sites, resource.site) {
 		resultList = append(resultList, resource.file)
 		return false, resultList
 	}
@@ -243,13 +243,13 @@ func noNameExceptionApplies(resourceName string) bool {
 
 func getGlobalConfigMap(globalConfigFile string) map[string]GlobalConfig {
 	allBytes, err := ioutil.ReadFile(globalConfigFile)
-	goutils.CheckError(err)
+	LogFatal(err)
 
 	resultMap := make(map[string]GlobalConfig)
 
 	var jsonData []map[string]GlobalConfig
 	err = json.Unmarshal(allBytes, &jsonData)
-	goutils.CheckError(err)
+	LogFatal(err)
 	for _, element := range jsonData {
 		for s, gc := range element {
 			resultMap[s] = gc
@@ -261,17 +261,17 @@ func getGlobalConfigMap(globalConfigFile string) map[string]GlobalConfig {
 
 func getVersions(spotVersionsFile string) map[string]int {
 	openedFile, err := os.Open(spotVersionsFile)
-	goutils.CheckError(err)
-	defer goutils.CloseFile(openedFile)
+	LogFatal(err)
+	defer CloseFile(openedFile)
 
 	versionsMap := make(map[string]int)
 
 	exp := regexp.MustCompile("^\\s*(?P<name>[a-zA-Z_-]+)\\s+->\\s+[vV](?P<version>[0-9]{1,2})\\s*$")
 	scanner := bufio.NewScanner(openedFile)
 	for scanner.Scan() {
-		regexSubGroups := goutils.GetRegexSubgroups(exp, scanner.Text())
+		regexSubGroups := GetRegexSubgroups(exp, scanner.Text())
 		version, err := strconv.ParseInt(regexSubGroups["version"], 0, 32)
-		goutils.CheckError(err)
+		LogFatal(err)
 		versionsMap[regexSubGroups["name"]] = int(version)
 	}
 

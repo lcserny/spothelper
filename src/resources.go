@@ -1,7 +1,7 @@
 package spothelper
 
 import (
-	"github.com/lcserny/goutils"
+	. "github.com/lcserny/goutils"
 	"strconv"
 )
 
@@ -48,7 +48,7 @@ func NewSiteResourceFrom(resource string, subgroups map[string]string) *SiteReso
 
 func NewGlobalResourceFrom(resource string, subgroups map[string]string) *GlobalResource {
 	version, err := strconv.ParseInt(subgroups["version"], 0, 32)
-	goutils.CheckError(err)
+	LogFatal(err)
 	return &GlobalResource{
 		NewResourceFrom(resource),
 		subgroups["name"],
