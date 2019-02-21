@@ -58,10 +58,10 @@ func getOutFolder(outFolder string) string {
 			LogFatal(err)
 			log.Printf("Created output folders in: %s", newOutFolder)
 			return newOutFolder
-		} else {
-			count++
-			newOutFolder = generateNewOutFolderPath(outFolder, today, count)
 		}
+
+		count++
+		newOutFolder = generateNewOutFolderPath(outFolder, today, count)
 	}
 }
 
