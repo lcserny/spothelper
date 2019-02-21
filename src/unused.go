@@ -23,10 +23,12 @@ const (
 	BACK_COMMANDS_PREF = "BACKUP_CMD"
 )
 
-var globalPattern = regexp.MustCompile("^(?P<name>.*)/[vV](?P<version>[0-9]{1,2})/(?P<file>[^/]+)$")
-var sitePattern = regexp.MustCompile("^(?P<site>.*)/(?P<name>.*)/[vV](?P<version>[0-9]{1,2})/(?P<file>[^/]+)$")
-var localePattern = regexp.MustCompile("^(?P<site>.*)/(?P<locale>.*)/(?P<name>.*)/[vV](?P<version>[0-9]{1,2})/(?P<file>[^/]+)$")
-var nameExcPattern = regexp.MustCompile("orderedcount-[a-zA-Z]+")
+var (
+	globalPattern  = regexp.MustCompile("^(?P<name>.*)/[vV](?P<version>[0-9]{1,2})/(?P<file>[^/]+)$")
+	sitePattern    = regexp.MustCompile("^(?P<site>.*)/(?P<name>.*)/[vV](?P<version>[0-9]{1,2})/(?P<file>[^/]+)$")
+	localePattern  = regexp.MustCompile("^(?P<site>.*)/(?P<locale>.*)/(?P<name>.*)/[vV](?P<version>[0-9]{1,2})/(?P<file>[^/]+)$")
+	nameExcPattern = regexp.MustCompile("orderedcount-[a-zA-Z]+")
+)
 
 func ProcessUnused(spotVersionsFile, globalConfigFile, inFolder, outFolder string) {
 	log.Println("spotVersionsFile:", spotVersionsFile)
