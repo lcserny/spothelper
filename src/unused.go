@@ -126,13 +126,19 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 	for _, resource := range resources {
 		if localePattern.MatchString(resource) {
 			localeResource := NewLocaleResourceFrom(resource, GetRegexSubgroups(localePattern, resource))
-			unusedResources = checkAndPopulateUnusedResources(unusedResources, versions, config, *localeResource.SiteResource)
+			if unused, found := findUnusedResource(versions, config, *localeResource.SiteResource); found {
+				unusedResources = append(unusedResources, unused)
+			}
 		} else if sitePattern.MatchString(resource) {
 			siteResource := NewSiteResourceFrom(resource, GetRegexSubgroups(sitePattern, resource))
-			unusedResources = checkAndPopulateUnusedResources(unusedResources, versions, config, *siteResource)
+			if unused, found := findUnusedResource(versions, config, *siteResource); found {
+				unusedResources = append(unusedResources, unused)
+			}
 		} else if globalPattern.MatchString(resource) {
 			globalResource := NewGlobalResourceFrom(resource, GetRegexSubgroups(globalPattern, resource))
-			unusedResources = populateDefaultUnusedResources(unusedResources, versions, globalResource)
+			if unused, found := findSpecificUnusedResource(versions, globalResource); found {
+				unusedResources = append(unusedResources, unused)
+			}
 		} else {
 			unmatchedResources = append(unmatchedResources, resource)
 		}
@@ -145,13 +151,29 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 	return unusedResources, unmatchedResources, deleteCommands, backupCommands
 }
 
-func checkAndPopulateUnusedResources(unusedResources []string, versions map[string]int, config GlobalConfig, siteResource SiteResource) []string {
+func findUnusedResource(versions map[string]int, config GlobalConfig, siteResource SiteResource) (string, bool) {
 	if !StringsContain(config.Sites, siteResource.site) {
-		unusedResources = append(unusedResources, siteResource.file)
-	} else {
-		unusedResources = populateDefaultUnusedResources(unusedResources, versions, siteResource.GlobalResource)
+		return siteResource.file, true
 	}
-	return unusedResources
+	return findSpecificUnusedResource(versions, siteResource.GlobalResource)
+}
+
+func findSpecificUnusedResource(versions map[string]int, resource *GlobalResource) (string, bool) {
+	noConsumerMatched := true
+	for rName, rVer := range versions {
+		if rName == resource.name {
+			noConsumerMatched = false
+			if resource.version < rVer {
+				return resource.file, true
+			}
+		}
+	}
+
+	if noConsumerMatched && noNameExceptionApplies(resource.name) {
+		return resource.file, true
+	}
+
+	return "", false
 }
 
 func produceCommands(concatenatedList []string, config *GlobalConfig) ([]string, []string) {
@@ -186,25 +208,6 @@ func addDeleteCommand(commands []string, element string, config *GlobalConfig) [
 		commands = append(commands, curl)
 	}
 	return commands
-}
-
-func populateDefaultUnusedResources(resultList []string, versions map[string]int, resource *GlobalResource) []string {
-	noConsumerMatched := true
-	for rName, rVer := range versions {
-		if rName == resource.name {
-			noConsumerMatched = false
-			if resource.version < rVer {
-				resultList = append(resultList, resource.file)
-			}
-			break
-		}
-	}
-
-	if noConsumerMatched && noNameExceptionApplies(resource.name) {
-		resultList = append(resultList, resource.file)
-	}
-
-	return resultList
 }
 
 func noNameExceptionApplies(resourceName string) bool {
