@@ -120,45 +120,27 @@ func writeLinesToFile(slice []string, fullFilePath string) {
 }
 
 func process(resources []string, versions map[string]int, config GlobalConfig) ([]string, []string, []string, []string) {
-	var globalResources []GlobalResource
-	var siteResources []SiteResource
-	var localeResources []LocaleResource
-
 	var unusedResources []string
 	var unmatchedResources []string
 	var checkShopResult bool
 
 	for _, resource := range resources {
 		if localePattern.MatchString(resource) {
-			subgroups := GetRegexSubgroups(localePattern, resource)
-			localeResources = append(localeResources, *NewLocaleResourceFrom(resource, subgroups))
+			localeResource := NewLocaleResourceFrom(resource, GetRegexSubgroups(localePattern, resource))
+			if checkShopResult, unusedResources = checkShopPopulateAndDiscard(unusedResources, &config, localeResource.SiteResource); checkShopResult {
+				unusedResources = populateUnusedResources(unusedResources, versions, localeResource.GlobalResource)
+			}
 		} else if sitePattern.MatchString(resource) {
-			subgroups := GetRegexSubgroups(sitePattern, resource)
-			siteResources = append(siteResources, *NewSiteResourceFrom(resource, subgroups))
+			siteResource := NewSiteResourceFrom(resource, GetRegexSubgroups(sitePattern, resource))
+			if checkShopResult, unusedResources = checkShopPopulateAndDiscard(unusedResources, &config, siteResource); checkShopResult {
+				unusedResources = populateUnusedResources(unusedResources, versions, siteResource.GlobalResource)
+			}
 		} else if globalPattern.MatchString(resource) {
-			subgroups := GetRegexSubgroups(globalPattern, resource)
-			globalResources = append(globalResources, *NewGlobalResourceFrom(resource, subgroups))
+			globalResource := NewGlobalResourceFrom(resource, GetRegexSubgroups(globalPattern, resource))
+			unusedResources = populateUnusedResources(unusedResources, versions, globalResource)
 		} else {
 			unmatchedResources = append(unmatchedResources, resource)
 		}
-	}
-
-	for _, e := range localeResources {
-		checkShopResult, unusedResources = checkShopPopulateAndDiscard(unusedResources, &config, e.SiteResource)
-		if checkShopResult {
-			unusedResources = populateUnusedResources(unusedResources, versions, e.GlobalResource)
-		}
-	}
-
-	for _, e := range siteResources {
-		checkShopResult, unusedResources = checkShopPopulateAndDiscard(unusedResources, &config, &e)
-		if checkShopResult {
-			unusedResources = populateUnusedResources(unusedResources, versions, e.GlobalResource)
-		}
-	}
-
-	for _, e := range globalResources {
-		unusedResources = populateUnusedResources(unusedResources, versions, &e)
 	}
 
 	sort.Strings(unusedResources)
