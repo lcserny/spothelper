@@ -122,22 +122,17 @@ func writeLinesToFile(slice []string, fullFilePath string) {
 func process(resources []string, versions map[string]int, config GlobalConfig) ([]string, []string, []string, []string) {
 	var unusedResources []string
 	var unmatchedResources []string
-	var checkShopResult bool
 
 	for _, resource := range resources {
 		if localePattern.MatchString(resource) {
 			localeResource := NewLocaleResourceFrom(resource, GetRegexSubgroups(localePattern, resource))
-			if checkShopResult, unusedResources = checkShopPopulateAndDiscard(unusedResources, &config, localeResource.SiteResource); checkShopResult {
-				unusedResources = populateUnusedResources(unusedResources, versions, localeResource.GlobalResource)
-			}
+			unusedResources = checkAndPopulateUnusedResources(unusedResources, versions, config, *localeResource.SiteResource)
 		} else if sitePattern.MatchString(resource) {
 			siteResource := NewSiteResourceFrom(resource, GetRegexSubgroups(sitePattern, resource))
-			if checkShopResult, unusedResources = checkShopPopulateAndDiscard(unusedResources, &config, siteResource); checkShopResult {
-				unusedResources = populateUnusedResources(unusedResources, versions, siteResource.GlobalResource)
-			}
+			unusedResources = checkAndPopulateUnusedResources(unusedResources, versions, config, *siteResource)
 		} else if globalPattern.MatchString(resource) {
 			globalResource := NewGlobalResourceFrom(resource, GetRegexSubgroups(globalPattern, resource))
-			unusedResources = populateUnusedResources(unusedResources, versions, globalResource)
+			unusedResources = populateDefaultUnusedResources(unusedResources, versions, globalResource)
 		} else {
 			unmatchedResources = append(unmatchedResources, resource)
 		}
@@ -148,6 +143,15 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 	deleteCommands, backupCommands := produceCommands(append(unusedResources, unmatchedResources...), &config)
 
 	return unusedResources, unmatchedResources, deleteCommands, backupCommands
+}
+
+func checkAndPopulateUnusedResources(unusedResources []string, versions map[string]int, config GlobalConfig, siteResource SiteResource) []string {
+	if !StringsContain(config.Sites, siteResource.site) {
+		unusedResources = append(unusedResources, siteResource.file)
+	} else {
+		unusedResources = populateDefaultUnusedResources(unusedResources, versions, siteResource.GlobalResource)
+	}
+	return unusedResources
 }
 
 func produceCommands(concatenatedList []string, config *GlobalConfig) ([]string, []string) {
@@ -184,15 +188,7 @@ func addDeleteCommand(commands []string, element string, config *GlobalConfig) [
 	return commands
 }
 
-func checkShopPopulateAndDiscard(resultList []string, config *GlobalConfig, resource *SiteResource) (bool, []string) {
-	if !StringsContain(config.Sites, resource.site) {
-		resultList = append(resultList, resource.file)
-		return false, resultList
-	}
-	return true, resultList
-}
-
-func populateUnusedResources(resultList []string, versions map[string]int, resource *GlobalResource) []string {
+func populateDefaultUnusedResources(resultList []string, versions map[string]int, resource *GlobalResource) []string {
 	noConsumerMatched := true
 	for rName, rVer := range versions {
 		if rName == resource.name {
