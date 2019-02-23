@@ -32,7 +32,7 @@ func main() {
 
 	args := os.Args[1:]
 	argsLength := len(args)
-	command := MewCommandFrom(*commandFlag)
+	command := newCommandFrom(*commandFlag)
 	switch command {
 	case UNUSED:
 		incr := 0
@@ -71,7 +71,7 @@ func main() {
 	log.Printf("FINISHED: it took %d ms to execute program!", endTime)
 }
 
-func MewCommandFrom(val string) Command {
+func newCommandFrom(val string) Command {
 	switch strings.ToUpper(val) {
 	case "UNUSED":
 		return UNUSED
