@@ -1,9 +1,9 @@
-package main
+package spothelper
 
 import (
-	. "../../src"
 	"flag"
 	. "github.com/lcserny/goutils"
+	"github.com/lcserny/spothelper/commands"
 	"strconv"
 	"strings"
 
@@ -41,7 +41,7 @@ func main() {
 		} else if argsLength > 4 {
 			incr = 1
 		}
-		ProcessUnused(args[0+incr], args[1+incr], args[2+incr], args[3+incr])
+		commands.ProcessUnused(args[0+incr], args[1+incr], args[2+incr], args[3+incr])
 		break
 	case BACKUP:
 		if argsLength < 4 {
@@ -53,7 +53,7 @@ func main() {
 		LogFatal(err)
 		limit, err := strconv.ParseInt(args[4], 0, 32)
 		LogFatal(err)
-		ExecuteBackup(args[1], int(secondsBetween), int(startOffset), int(limit))
+		commands.ExecuteBackup(args[1], int(secondsBetween), int(startOffset), int(limit))
 		break
 	case DELETE:
 		if argsLength < 4 {
@@ -61,7 +61,7 @@ func main() {
 		}
 		secondsBetween, err := strconv.ParseInt(args[2], 0, 32)
 		LogFatal(err)
-		ExecuteDelete(args[1], int(secondsBetween), args[3], args[4])
+		commands.ExecuteDelete(args[1], int(secondsBetween), args[3], args[4])
 		break
 	case UNKNOWN:
 		log.Fatal("Unknown command given")

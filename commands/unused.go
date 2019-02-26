@@ -1,4 +1,4 @@
-package spothelper
+package commands
 
 import (
 	"bufio"
