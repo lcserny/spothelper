@@ -1,9 +1,9 @@
-package spothelper
+package src
 
 import (
 	"flag"
 	. "github.com/lcserny/goutils"
-	"github.com/lcserny/spothelper/commands"
+	"github.com/lcserny/spothelper/src/commands"
 	"strconv"
 	"strings"
 
