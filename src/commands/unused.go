@@ -13,10 +13,13 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 const (
+	mainProcessThreadCount = 10
+
 	UNUSED_PREF        = "UNUSED"
 	MISC_PREF          = "MISC_UNUSED"
 	DEL_COMMANDS_PREF  = "DELETE_CMD"
@@ -120,10 +123,59 @@ func writeLinesToFile(slice []string, fullFilePath string) {
 }
 
 func process(resources []string, versions map[string]int, config GlobalConfig) ([]string, []string, []string, []string) {
-	var unusedResources []string
-	var unmatchedResources []string
+	resCount := len(resources)
+	threadsCount := mainProcessThreadCount
+	if resCount < threadsCount {
+		threadsCount = 1
+	}
+	resourcesChunkSize := resCount / threadsCount
 
-	for _, resource := range resources {
+	unusedResourcesHolder := make(map[int][]string, threadsCount)
+	unmatchedResourcesHolder := make(map[int][]string, threadsCount)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(threadsCount)
+
+	for i := 1; i <= threadsCount; i++ {
+		startIdx := 0
+		if i > 1 {
+			startIdx = (i - 1) * resourcesChunkSize
+		}
+
+		endIdx := i * resourcesChunkSize
+		if i == threadsCount {
+			endIdx = resCount
+		}
+
+		go func(iter, start, end int) {
+			unusedResources, unmatchedResources := processChunk(resources[start:end], versions, config)
+			unusedResourcesHolder[iter] = unusedResources
+			unmatchedResourcesHolder[iter] = unmatchedResources
+			wg.Done()
+		}(i, startIdx, endIdx)
+	}
+
+	wg.Wait()
+
+	var unusedResources []string
+	for _, slice := range unusedResourcesHolder {
+		unusedResources = append(unusedResources, slice...)
+	}
+
+	var unmatchedResources []string
+	for _, slice := range unmatchedResourcesHolder {
+		unmatchedResources = append(unmatchedResources, slice...)
+	}
+
+	sort.Strings(unusedResources)
+	sort.Strings(unmatchedResources)
+	deleteCommands, backupCommands := produceCommands(append(unusedResources, unmatchedResources...), &config)
+
+	return unusedResources, unmatchedResources, deleteCommands, backupCommands
+}
+
+func processChunk(resourcesChunk []string, versions map[string]int, config GlobalConfig) (unusedResources, unmatchedResources []string) {
+	for _, resource := range resourcesChunk {
 		if localePattern.MatchString(resource) {
 			localeResource := NewLocaleResourceFrom(resource, GetRegexSubgroups(localePattern, resource))
 			if unused, found := findUnusedResource(versions, config, *localeResource.SiteResource); found {
@@ -143,12 +195,7 @@ func process(resources []string, versions map[string]int, config GlobalConfig) (
 			unmatchedResources = append(unmatchedResources, resource)
 		}
 	}
-
-	sort.Strings(unusedResources)
-	sort.Strings(unmatchedResources)
-	deleteCommands, backupCommands := produceCommands(append(unusedResources, unmatchedResources...), &config)
-
-	return unusedResources, unmatchedResources, deleteCommands, backupCommands
+	return unusedResources, unmatchedResources
 }
 
 func findUnusedResource(versions map[string]int, config GlobalConfig, siteResource SiteResource) (string, bool) {
